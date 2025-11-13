@@ -1,8 +1,10 @@
 package com.example.joaodev.hr_payroll.entities;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 public class Worker implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;    
 
     private Long id;
