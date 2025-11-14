@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-HrEurekaServerApplication<hr-eureka-server>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.joaodev.hr_eureka_server.HrEurekaServerApplication",
+            "projectName": "hr-eureka-server",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-HrWorkerApplication<hr-worker>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.joaodev.hr_worker.HrWorkerApplication",
+            "projectName": "hr-worker",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-HrPayrollApplication<hr_payroll>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.joaodev.hr_payroll.HrPayrollApplication",
+            "projectName": "hr_payroll",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
