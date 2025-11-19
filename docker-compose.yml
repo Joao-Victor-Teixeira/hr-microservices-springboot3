@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+
+  hr-worker-db:
+    image: postgres:16-alpine
+    container_name: hr-worker-db
+    environment:
+      - POSTGRES_DB=hr_worker
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    ports:
+      - "5432:5432"
+    networks:
+      - hr-net
+
+  hr-user-db:
+    image: postgres:16-alpine
+    container_name: hr-user-db
+    environment:
+      - POSTGRES_DB=hr_user
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    ports:
+      - "5433:5432"
+    networks:
+      - hr-net
+
+  hr-eureka-server:
+    image: hr-eureka-server:v1
+    container_name: hr-eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - hr-net
+
+  hr-config-server:
+    image: hr-config-server:v1
+    container_name: hr-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+    depends_on:
+      - hr-eureka-server
+    networks:
+      - hr-net
+
+  hr-worker:
+    image: hr-worker:v1
+    container_name: hr-worker
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://hr-worker-db:5432/hr_worker
+    depends_on:
+      - hr-eureka-server
+      - hr-config-server
+      - hr-worker-db
+    networks:
+      - hr-net
+
+  hr-user:
+    image: hr-user:v1
+    container_name: hr-user
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://hr-user-db:5432/hr_user
+    depends_on:
+      - hr-eureka-server
+      - hr-config-server
+      - hr-user-db
+    networks:
+      - hr-net
+
+  hr-payroll:
+    image: hr-payroll:v1
+    container_name: hr-payroll
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+    depends_on:
+      - hr-eureka-server
+      - hr-config-server
+    networks:
+      - hr-net
+  
+  hr-oauth:
+    image: hr-oauth:v1
+    container_name: hr-oauth
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+    depends_on:
+      - hr-eureka-server
+      - hr-config-server
+    networks:
+      - hr-net
+
+  hr-gateway:
+    image: hr-gateway:v1
+    container_name: hr-gateway
+    ports:
+      - "8765:8765"
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+    depends_on:
+      - hr-eureka-server
+      - hr-config-server
+      - hr-oauth
+    networks:
+      - hr-net
+
+networks:
+  hr-net:
+    driver: bridge
