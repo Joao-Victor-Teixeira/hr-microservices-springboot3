@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-
+  # BANCO DE DADOS 
   hr-worker-db:
     image: postgres:16-alpine
     container_name: hr-worker-db
@@ -13,7 +13,12 @@ services:
       - "5432:5432"
     networks:
       - hr-net
-
+    healthcheck: 
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
   hr-user-db:
     image: postgres:16-alpine
     container_name: hr-user-db
@@ -25,12 +30,26 @@ services:
       - "5433:5432"
     networks:
       - hr-net
+    healthcheck: 
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+# INFRAESTRUTURA
   hr-eureka-server:
     image: hr-eureka-server:v1
     container_name: hr-eureka-server
     ports:
       - "8761:8761"
+    environment:
+      - EUREKA_HOST=hr-eureka-server
+    healthcheck: 
+      test: ["CMD-SHELL", "nc -z localhost 8761 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
     networks:
       - hr-net
 
@@ -41,19 +60,41 @@ services:
       - "8888:8888"
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_USERNAME=Joao-Victor-Teixeira
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_PASSWORD=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
     depends_on:
-      - hr-eureka-server
+      - hr-eureka-server 
+    healthcheck: 
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     networks:
       - hr-net
 
+# MICROSSERVIÇOS 
   hr-worker:
     image: hr-worker:v1
     container_name: hr-worker
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_PROFILES_ACTIVE=dev 
       - SPRING_DATASOURCE_URL=jdbc:postgresql://hr-worker-db:5432/hr_worker
+      - SPRING_DATASOURCE_USERNAME=postgres 
+      - SPRING_DATASOURCE_PASSWORD=123456 
+      - SPRING_CONFIG_IMPORT=configserver:http://root:123456@hr-config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=10000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=15000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
-      - hr-eureka-server
+      - hr-eureka-server 
       - hr-config-server
       - hr-worker-db
     networks:
@@ -64,19 +105,41 @@ services:
     container_name: hr-user
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://hr-user-db:5432/hr_user
+      - SPRING_DATASOURCE_USERNAME=postgres 
+      - SPRING_DATASOURCE_PASSWORD=123456 
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=10000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=15000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
       - hr-eureka-server
       - hr-config-server
       - hr-user-db
     networks:
       - hr-net
-
-  hr-payroll:
+      
+  hr-payroll: 
     image: hr-payroll:v1
     container_name: hr-payroll
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_CONFIG_IMPORT=configserver:http://root:123456@hr-config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=10000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=15000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
       - hr-eureka-server
       - hr-config-server
@@ -88,6 +151,16 @@ services:
     container_name: hr-oauth
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_CONFIG_IMPORT=configserver:http://root:123456@hr-config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=10000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=15000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
       - hr-eureka-server
       - hr-config-server
@@ -101,10 +174,21 @@ services:
       - "8765:8765"
     environment:
       - EUREKA_HOST=hr-eureka-server
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://hr-oauth:8768/oauth2/jwks
+      - SPRING_CONFIG_IMPORT=configserver:http://root:123456@hr-config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=10000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=15000 
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
+      - hr-oauth
       - hr-eureka-server
       - hr-config-server
-      - hr-oauth
     networks:
       - hr-net
 
